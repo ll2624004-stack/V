@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شرح شيفرة فيجنير | Vigenère Cipher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .student-explanation {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-right: 4px solid #667eea;
+        }
+        .matrix-bg {
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3) 0%, transparent 50%);
+        }
+        .step-card {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        .code-section {
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .line-number {
+            color: #858585;
+            user-select: none;
+            text-align: right;
+            padding-right: 15px;
+            min-width: 50px;
+            border-left: 1px solid #333;
+        }
+        .code-line-content {
+            padding-left: 15px;
+            white-space: pre;
+        }
+        .line-explanation {
+            background: rgba(102, 126, 234, 0.05);
+            border-right: 3px solid #667eea;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+        .interactive-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+        .interactive-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.4);
+            outline: none;
+        }
+        .function-title {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .vigenere-table {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+        .vigenere-table td, .vigenere-table th {
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px;
+            text-align: center;
+        }
+        .vigenere-table th {
+            background: rgba(102, 126, 234, 0.2);
+        }
+        .highlight-cell {
+            background: rgba(102, 126, 234, 0.4) !important;
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="matrix-bg min-h-screen">
+
+    <!-- Hero Section -->
+    <section class="relative min-h-[70vh] flex items-center justify-center overflow-hidden pt-10">
+        <div class="absolute inset-0 z-0">
+            <div class="absolute top-20 left-20 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+            <div class="absolute bottom-20 right-20 w-72 h-72 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        </div>
+        
+        <div class="relative z-10 text-center px-4">
+            <div class="mb-6 inline-block">
+                <span class="text-6xl md:text-8xl font-bold gradient-text">شيفرة فيجنير</span>
+            </div>
+            <h1 class="text-3xl md:text-5xl font-bold mb-6 text-white">Vigenère Cipher Algorithm</h1>
+            <p class="text-xl md:text-2xl text-gray-400 mb-8 max-w-3xl mx-auto leading-relaxed">
+                عرض تفصيلي لخوارزمية التشفير المتعددة الأبجدية مع التحليل البرمجي العميق
+            </p>
+            <div class="flex gap-4 justify-center flex-wrap">
+                <button onclick="scrollToSection('explanation')" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30">
+                    عرض الشرح التفصيلي
+                </button>
+                <button onclick="scrollToSection('interactive')" class="px-8 py-4 border-2 border-purple-500 rounded-full font-bold text-purple-400 hover:bg-purple-500 hover:text-white transition-all">
+                    التطبيق العملي
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Student Introduction -->
+    <section class="py-16 px-4 md:px-20">
+        <div class="max-w-4xl mx-auto student-explanation rounded-2xl p-8 step-card">
+            <div class="flex items-start gap-6">
+                <div class="text-6xl">🎓</div>
+                <div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">مقدمة الطالب</h3>
+                    <p class="text-gray-300 leading-relaxed text-lg">
+                        السلام عليكم دكتور، في هذا المشروع راح اشرح لحضرتك كود شيفرة فيجنير اللي كتبته بلغة بايثون. 
+                        هذه الشيفرة تُعتبر تطوير مهم لشيفرة قيصر، حيث تستخدم <span class="text-purple-400 font-bold">مفتاح نصي</span> بدلاً من رقم واحد، 
+                        مما يجعلها أكثر أماناً. الكود يتكون من دالة التشفير الرئيسية اللي تتعامل مع مفتاح متكرر (Repeating Key).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Concept Section -->
+    <section class="py-20 px-4 md:px-20 bg-black/30">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">الفكرة العامة للخوارزمية</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="glass-card rounded-2xl p-8 step-card">
+                    <h3 class="text-2xl font-bold mb-4 text-purple-400">الفرق عن شيفرة قيصر</h3>
+                    <p class="text-gray-300 leading-relaxed text-lg">
+                        في شيفرة قيصر كان عندنا <span class="text-yellow-400">إزاحة ثابتة</span> لكل الحروف. 
+                        أما في فيجنير، عندنا <span class="text-purple-400">مفتاح نصي</span> (مثلاً "KEY") 
+                        وكل حرف في المفتاح يحدد إزاحة مختلفة للحرف المقابل في النص الأصلي.
+                    </p>
+                </div>
+                
+                <div class="glass-card rounded-2xl p-8 step-card">
+                    <h3 class="text-2xl font-bold mb-4 text-blue-400">آلية عمل المفتاح المتكرر</h3>
+                    <p class="text-gray-300 leading-relaxed text-lg">
+                        إذا كان المفتاح "KEY" والنص "HELLO"، نكرر المفتاح ليطابق طول النص: 
+                        <span class="code-font text-green-400">KEYKE</span>.<br>
+                        ثم نجمع كل حرف مع نظيره: H+K, E+E, L+Y, L+K, O+E
+                    </p>
+                </div>
+            </div>
+
+            <!-- Vigenère Square Visualization -->
+            <div class="glass-card rounded-2xl p-8 step-card mb-12 overflow-x-auto">
+                <h3 class="text-2xl font-bold mb-6 text-center text-white">مربع فيجنير (Vigenère Square)</h3>
+                <p class="text-gray-400 mb-6 text-center">الجدول يوضح كيفية جمع الحروف. الصفوف تمثل النص الأصلي، الأعمدة تمثل المفتاح.</p>
+                
+                <div class="overflow-x-auto">
+                    <table class="vigenere-table w-full text-sm" id="vigenere-square">
+                        <!-- Generated by JS -->
+                    </table>
+                </div>
+                
+                <div class="mt-6 p-4 bg-purple-500/10 rounded-lg text-center">
+                    <p class="text-gray-300">
+                        <span class="text-purple-400 font-bold">مثال:</span> 
+                        حرف 'H' (الصف 7) + حرف 'K' (العمود 10) = 
+                        <span class="text-green-400 font-bold">'R'</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Explanation Section -->
+    <section id="explanation" class="py-20 px-4 md:px-20">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">الكود البرمجي الكامل مع الشرح</h2>
+
+            <!-- Function: vigenere_encrypt -->
+            <div class="mb-16">
+                <div class="glass-card rounded-2xl p-8 mb-8">
+                    <h3 class="function-title">الدالة الرئيسية: vigenere_encrypt(plaintext, key)</h3>
+                    <p class="text-gray-300 mb-6 text-lg">
+                        هذه الدالة تقوم بتشفير النص باستخدام مفتاح نصي متكرر. تتضمن التحقق من صحة المفتاح ومعالجة الحروف الكبيرة والصغيرة.
+                    </p>
+                </div>
+
+                <!-- Code Block -->
+                <div class="code-section mb-8 overflow-x-auto">
+                    <div class="bg-gray-800 px-4 py-2 text-sm text-gray-400 border-b border-gray-700 flex justify-between items-center">
+                        <span>vigenere_encrypt function</span>
+                        <span class="text-xs text-gray-500">Lap2_VegnereCipher.py</span>
+                    </div>
+                    <table class="w-full code-font text-sm">
+                        <tbody>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">01</td>
+                                <td class="code-line-content"><span class="text-purple-400">def</span> <span class="text-blue-400">vigenere_encrypt</span>(plaintext, key):</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">02</td>
+                                <td class="code-line-content">    <span class="text-purple-400">if not</span> key.isalpha():</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">03</td>
+                                <td class="code-line-content">        <span class="text-purple-400">raise</span> <span class="text-yellow-400">ValueError</span>(<span class="text-green-400">"Key must contain letters only"</span>)</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">04</td>
+                                <td class="code-line-content">    </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">05</td>
+                                <td class="code-line-content">    result = <span class="text-green-400">""</span></td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">06</td>
+                                <td class="code-line-content">    key = key.lower()</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">07</td>
+                                <td class="code-line-content">    key_index = <span class="text-orange-400">0</span></td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">08</td>
+                                <td class="code-line-content">    </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">09</td>
+                                <td class="code-line-content">    <span class="text-purple-400">for</span> char <span class="text-purple-400">in</span> plaintext:</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">10</td>
+                                <td class="code-line-content">        <span class="text-purple-400">if</span> char.isalpha():</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">11</td>
+                                <td class="code-line-content">            base = <span class="text-yellow-400">ord</span>(<span class="text-green-400">'A'</span>) <span class="text-purple-400">if</span> char.isupper() <span class="text-purple-400">else</span> <span class="text-yellow-400">ord</span>(<span class="text-green-400">'a'</span>)</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">12</td>
+                                <td class="code-line-content">            </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">13</td>
+                                <td class="code-line-content">            p = <span class="text-yellow-400">ord</span>(char.lower()) - <span class="text-yellow-400">ord</span>(<span class="text-green-400">'a'</span>)</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">14</td>
+                                <td class="code-line-content">            k = <span class="text-yellow-400">ord</span>(key[key_index % <span class="text-yellow-400">len</span>(key)]) - <span class="text-yellow-400">ord</span>(<span class="text-green-400">'a'</span>)</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">15</td>
+                                <td class="code-line-content">            </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">16</td>
+                                <td class="code-line-content">            c = (p + k) % <span class="text-orange-400">26</span></td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">17</td>
+                                <td class="code-line-content">            result += <span class="text-yellow-400">chr</span>(c + base)</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">18</td>
+                                <td class="code-line-content">            </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">19</td>
+                                <td class="code-line-content">            key_index += <span class="text-orange-400">1</span></td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">20</td>
+                                <td class="code-line-content">        <span class="text-purple-400">else</span>:</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">21</td>
+                                <td class="code-line-content">            result += char</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">22</td>
+                                <td class="code-line-content">    </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="line-number">23</td>
+                                <td class="code-line-content">    <span class="text-purple-400">return</span> result</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Line by Line Explanation -->
+                <div class="space-y-4">
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 01:</strong> 
+                        عرفت الدالة <code class="bg-gray-800 px-2 py-1 rounded">vigenere_encrypt</code> بمعاملين: 
+                        <span class="text-blue-300">plaintext</span> (النص الأصلي) و <span class="text-blue-300">key</span> (المفتاح النصي).
+                        اخترت اسم واضح يوضح خوارزمية فيجنير.
+                    </div>
+
+                    <div class="line-explanation bg-red-500/10 border-red-500">
+                        <strong class="text-red-400">السطر 02-03 (التحقق من صحة المدخلات):</strong> 
+                        هنا فحصت إذا كان المفتاح يحتوي على أحرف فقط باستخدام <code class="bg-gray-800 px-2 py-1 rounded">isalpha()</code>.
+                        إذا كان المفتاح يحتوي على أرقام أو رموز، نرفع خطأ <code class="bg-gray-800 px-2 py-1 rounded">ValueError</code>.
+                        <br><br>
+                        <strong>ليه هذا مهم؟</strong> لأن خوارزمية فيجنير تعتمد على جمع قيم الحروف. لو دخل رقم، الحساب راح يفشل.
+                        هذا يسمى <span class="text-yellow-400">Input Validation</span> وهو أمر ضروري في البرمجة الآمنة.
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 05:</strong> 
+                        أنشأت متغير <code class="bg-gray-800 px-2 py-1 rounded">result</code> فارغ لتخزين النتيجة المشفرة.
+                        راح نبني النتيجة حرف حرف داخل الحلقة.
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 06:</strong> 
+                        حولت المفتاح لحروف <span class="text-yellow-400">صغيرة</span> باستخدام <code class="bg-gray-800 px-2 py-1 rounded">lower()</code>.
+                        <br><br>
+                        <strong>السبب:</strong> عشان نتعامل مع المفتاح بشكل موحد سواء كان المستخدم دخله كبير أو صغير.
+                        مثلاً: "Key" و "KEY" و "key" كلها تصبح "key" ونفس التأثير.
+                    </div>
+
+                    <div class="line-explanation bg-blue-500/10 border-blue-500">
+                        <strong class="text-blue-400">السطر 07 (مؤشر المفتاح):</strong> 
+                        عرفت <code class="bg-gray-800 px-2 py-1 rounded">key_index = 0</code> لمتابعة موقعنا في المفتاح.
+                        <br><br>
+                        <strong>هذا أهم متغير في الكود!</strong> لأننا نحتاج نتحرك في المفتاح بشكل مستقل عن النص.
+                        مثلاً: لو النص "Hello World" والمفتاح "KEY"، نبغى نتجاهل المسافة ونكمل من آخر حرف استخدمناه في المفتاح.
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 09:</strong> 
+                        بدأت الحلقة الرئيسية للمرور على كل حرف في النص الأصلي (plaintext).
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 10:</strong> 
+                        فحصت إذا كان الحرف أبجدياً باستخدام <code class="bg-gray-800 px-2 py-1 rounded">isalpha()</code>.
+                        إذا كان حرف، نعمل عليه التشفير. إذا لا، نضيفه كما هو (سطر 21).
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 11:</strong> 
+                        حددت قيمة <code class="bg-gray-800 px-2 py-1 rounded">base</code> حسب حالة الحرف:
+                        <ul class="list-disc mr-6 mt-2 space-y-1 text-gray-300">
+                            <li>إذا كان حرف <span class="text-yellow-400">كبير</span>: base = 65 (قيمة 'A')</li>
+                            <li>إذا كان حرف <span class="text-green-400">صغير</span>: base = 97 (قيمة 'a')</li>
+                        </ul>
+                        <strong>الهدف:</strong> نحافظ على حالة الحرف (كبير/صغير) في النتيجة النهائية.
+                    </div>
+
+                    <div class="line-explanation bg-purple-500/10 border-purple-500">
+                        <strong class="text-purple-400">السطر 13 (تحويل النص الأصلي لرقم):</strong> 
+                        <code class="bg-gray-800 px-2 py-1 rounded">p = ord(char.lower()) - ord('a')</code>
+                        <br><br>
+                        حولت الحرف لرقم بين 0-25 يمثل موقعه في الأبجدية.
+                        <br>
+                        مثال: 'h' → 104 - 97 = <span class="text-green-400">7</span>
+                    </div>
+
+                    <div class="line-explanation bg-green-500/10 border-green-500">
+                        <strong class="text-green-400">السطر 14 (الجزء الحاسم - استخراج حرف المفتاح):</strong> 
+                        <code class="bg-gray-800 px-2 py-1 rounded">k = ord(key[key_index % len(key)]) - ord('a')</code>
+                        <br><br>
+                        هنا يكمن سر خوارزمية فيجنير:
+                        <ul class="list-disc mr-6 mt-2 space-y-1 text-gray-300">
+                            <li><code class="bg-gray-800 px-2 py-1 rounded">key_index % len(key)</code>: تضمن أننا نبقى ضمن حدود المفتاح. لما نوصل لنهاية المفتاح، نرجع للبداية (تكرار).</li>
+                            <li><code class="bg-gray-800 px-2 py-1 rounded">key[...]</code>: نجيب الحرف الحالي من المفتاح.</li>
+                            <li>نحول الحرف لرقم 0-25 بنفس طريقة النص الأصلي.</li>
+                        </ul>
+                        <br>
+                        <strong>مثال:</strong> إذا كان المفتاح "KEY" (طوله 3) وkey_index = 4:
+                        <br>4 % 3 = 1 → نأخذ الحرف في index 1 وهو 'E'
+                    </div>
+
+                    <div class="line-explanation bg-yellow-500/10 border-yellow-500">
+                        <strong class="text-yellow-400">السطر 16 (عملية التشفير الرياضية):</strong> 
+                        <code class="bg-gray-800 px-2 py-1 rounded">c = (p + k) % 26</code>
+                        <br><br>
+                        نجمع قيمة النص الأصلي (p) مع قيمة المفتاح (k)، ونستخدم <span class="text-purple-400">% 26</span> عشان نضمن النتيجة ضمن 0-25.
+                        <br><br>
+                        <strong>مثال عملي:</strong><br>
+                        النص: 'h' (p = 7)<br>
+                        المفتاح: 'k' (k = 10)<br>
+                        c = (7 + 10) % 26 = 17 % 26 = <span class="text-green-400">17</span> (الحرف 'r')
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 17:</strong> 
+                        حولت الرقم الناتج (c) لحرف باستخدام <code class="bg-gray-800 px-2 py-1 rounded">chr(c + base)</code>.
+                        ضفنا الـ base (65 أو 97) عشان نرجع لنطاق ASCII الصحيح.
+                        <br><br>
+                        في المثال السابق: chr(17 + 97) = chr(114) = <span class="text-green-400">'r'</span>
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 19:</strong> 
+                        زدنا <code class="bg-gray-800 px-2 py-1 rounded">key_index</code> بواحد عشان ننتقل للحرف التالي في المفتاح.
+                        <br><br>
+                        <strong>ملاحظة مهمة:</strong> نزيد المؤشر <span class="text-red-400">فقط</span> إذا كان الحرف أبجدياً.
+                        لو كان الحرف رمز أو رقم أو مسافة، ما نزيد المؤشر (عشان المفتاح يتوافق مع الحروف الأبجدية فقط).
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 20-21:</strong> 
+                        إذا كان الحرف مش أبجدياً (رقم، مسافة، رمز)، نضيفه للنتيجة كما هو بدون تغيير.
+                    </div>
+
+                    <div class="line-explanation">
+                        <strong class="text-purple-400">السطر 23:</strong> 
+                        بعد ما تخلص الحلقة، نرجع النص المشفر الكامل.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Walkthrough -->
+            <div class="glass-card rounded-2xl p-8 mb-16 border border-green-500/30 bg-green-500/5">
+                <h3 class="text-2xl font-bold mb-6 text-green-400">مثال عملي خطوة بخطوة</h3>
+                <p class="text-gray-300 mb-6">
+                    دكتور، خليني أوضح لحضرتك كيف الكود يشتغل مع مثال عملي:
+                    <br>
+                    <span class="code-font text-purple-400">plaintext = "Hello"</span>، 
+                    <span class="code-font text-blue-400">key = "KEY"</span>
+                </p>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700 text-gray-400">
+                                <th class="p-3 text-right">الخطوة</th>
+                                <th class="p-3">الحرف</th>
+                                <th class="p-3">key_index</th>
+                                <th class="p-3">حرف المفتاح</th>
+                                <th class="p-3">p</th>
+                                <th class="p-3">k</th>
+                                <th class="p-3">(p+k)%26</th>
+                                <th class="p-3">النتيجة</th>
+                            </tr>
+                        </thead>
+                        <tbody class="code-font text-center">
+                            <tr class="border-b border-gray-800 hover:bg-white/5">
+                                <td class="p-3 text-right text-gray-400">1</td>
+                                <td class="p-3 text-purple-400">H</td>
+                                <td class="p-3 text-yellow-400">0</td>
+                                <td class="p-3 text-blue-400">K (0%3=0)</td>
+                                <td class="p-3">7</td>
+                                <td class="p-3">10</td>
+                                <td class="p-3">17</td>
+                                <td class="p-3 text-green-400 font-bold">R</td>
+                            </tr>
+                            <tr class="border-b border-gray-800 hover:bg-white/5">
+                                <td class="p-3 text-right text-gray-400">2</td>
+                                <td class="p-3 text-purple-400">e</td>
+                                <td class="p-3 text-yellow-400">1</td>
+                                <td class="p-3 text-blue-400">E (1%3=1)</td>
+                                <td class="p-3">4</td>
+                                <td class="p-3">4</td>
+                                <td class="p-3">8</td>
+                                <td class="p-3 text-green-400 font-bold">i</td>
+                            </tr>
+                            <tr class="border-b border-gray-800 hover:bg-white/5">
+                                <td class="p-3 text-right text-gray-400">3</td>
+                                <td class="p-3 text-purple-400">l</td>
+                                <td class="p-3 text-yellow-400">2</td>
+                                <td class="p-3 text-blue-400">Y (2%3=2)</td>
+                                <td class="p-3">11</td>
+                                <td class="p-3">24</td>
+                                <td class="p-3">9</td>
+                                <td class="p-3 text-green-400 font-bold">j</td>
+                            </tr>
+                            <tr class="border-b border-gray-800 hover:bg-white/5">
+                                <td class="p-3 text-right text-gray-400">4</td>
+                                <td class="p-3 text-purple-400">l</td>
+                                <td class="p-3 text-yellow-400">3</td>
+                                <td class="p-3 text-blue-400">K (3%3=0)</td>
+                                <td class="p-3">11</td>
+                                <td class="p-3">10</td>
+                                <td class="p-3">21</td>
+                                <td class="p-3 text-green-400 font-bold">v</td>
+                            </tr>
+                            <tr class="hover:bg-white/5">
+                                <td class="p-3 text-right text-gray-400">5</td>
+                                <td class="p-3 text-purple-400">o</td>
+                                <td class="p-3 text-yellow-400">4</td>
+                                <td class="p-3 text-blue-400">E (4%3=1)</td>
+                                <td class="p-3">14</td>
+                                <td class="p-3">4</td>
+                                <td class="p-3">18</td>
+                                <td class="p-3 text-green-400 font-bold">s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 p-4 bg-black/30 rounded-lg text-center">
+                    <p class="text-gray-300">
+                        النتيجة النهائية: <span class="code-font text-2xl text-green-400 font-bold">"Rijvs"</span>
+                    </p>
+                    <p class="text-gray-500 text-sm mt-2">
+                        لاحظ كيف تكرر المفتاح: K, E, Y, K, E (لاحظ أن Y ثم رجعنا لـ K)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Section -->
+    <section id="interactive" class="py-20 px-4 md:px-20 bg-black/30">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-4xl font-bold mb-4 text-center gradient-text">التجربة العملية</h2>
+            <p class="text-center text-gray-400 mb-12 text-lg">جرب الكود بنفسك وراقب كيف يتغير المفتاح مع كل حرف</p>
+            
+            <div class="glass-card rounded-2xl p-8 border border-purple-500/20">
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="space-y-2">
+                        <label class="block text-gray-300 font-bold">النص الأصلي (Plaintext):</label>
+                        <input type="text" id="input-text" class="interactive-input w-full p-4 rounded-xl text-white text-lg code-font" value="Hello">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-300 font-bold">المفتاح (Key):</label>
+                        <input type="text" id="input-key" class="interactive-input w-full p-4 rounded-xl text-white text-lg code-font" value="KEY">
+                    </div>
+                </div>
+
+                <div class="flex justify-center mb-8">
+                    <button onclick="runCipher()" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30">
+                        تشغيل الخوارزمية
+                    </button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-purple-900/20 rounded-xl p-6 border border-purple-500/30">
+                        <h4 class="text-purple-400 font-bold mb-3">النص المشفر:</h4>
+                        <div id="output-encrypted" class="text-3xl font-bold text-white code-font break-all">Rijvs</div>
+                    </div>
+                    
+                    <div class="bg-blue-900/20 rounded-xl p-6 border border-blue-500/30">
+                        <h4 class="text-blue-400 font-bold mb-3">المفتاح المكرر:</h4>
+                        <div id="output-key-stream" class="text-xl font-bold text-white code-font break-all">KEYKE</div>
+                    </div>
+                </div>
+
+                <!-- Step Visualization -->
+                <div class="mt-8 p-6 bg-black/40 rounded-xl">
+                    <h4 class="text-gray-300 font-bold mb-6">خطوات التنفيذ التفصيلية:</h4>
+                    <div id="step-visualization" class="space-y-3">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analysis -->
+    <section class="py-20 px-4 md:px-20">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">تحليل الكود والخوارزمية</h2>
+            
+            <div class="space-y-6">
+                <div class="glass-card rounded-xl p-6 border-r-4 border-green-500">
+                    <h3 class="text-xl font-bold text-green-400 mb-3">نقاط القوة في الكود:</h3>
+                    <ul class="list-disc mr-6 space-y-2 text-gray-300">
+                        <li><strong>التحقق من المدخلات (Input Validation):</strong> التأكد أن المفتاح أبجدي فقط</li>
+                        <li><strong>المؤشر الذكي (key_index):</strong> يتعامل بشكل صحيح مع الرموز غير الأبجدية</li>
+                        <li><strong>الحفاظ على الحالة (Case Preservation):</strong> الحروف الكبيرة تبقى كبيرة والصغيرة تبقى صغيرة</li>
+                        <li><strong>المفتاح المتكرر التلقائي:</strong> استخدام % len(key) يتيح استخدام أي طول للمفتاح</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card rounded-xl p-6 border-r-4 border-yellow-500">
+                    <h3 class="text-xl font-bold text-yellow-400 mb-3">نقاط الضعف والتحسينات المقترحة:</h3>
+                    <ul class="list-disc mr-6 space-y-2 text-gray-300">
+                        <li>لا يوجد دالة لفك التشفير (يمكن إضافتها بنفس طريقة قيصر: طرح بدل جمع)</li>
+                        <li>لا يدعم اللغة العربية أو Unicode</li>
+                        <li>المفتاح القصير يسهل كسره باستخدام تحليل كاسiski (Kasiski Examination)</li>
+                        <li>يمكن إضافة دعم للأرقام في المفتاح إذا أردنا تعقيد أكثر</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card rounded-xl p-6 border-r-4 border-blue-500">
+                    <h3 class="text-xl font-bold text-blue-400 mb-3">التعقيد الزمني والمكاني:</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-gray-400">الزمني:</span>
+                            <span class="text-green-400 font-bold text-xl mr-2">O(n)</span>
+                            <p class="text-sm text-gray-500">حيث n طول النص. نمر على كل حرف مرة واحدة.</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">المكاني:</span>
+                            <span class="text-green-400 font-bold text-xl mr-2">O(n)</span>
+                            <p class="text-sm text-gray-500">لتخزين النتيجة. المفتاح ثابت الحجم.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl p-6 border-r-4 border-red-500">
+                    <h3 class="text-xl font-bold text-red-400 mb-3">مقارنة مع شيفرة قيصر:</h3>
+                    <table class="w-full text-sm mt-4">
+                        <thead>
+                            <tr class="border-b border-gray-700 text-gray-400">
+                                <th class="p-3 text-right">المعيار</th>
+                                <th class="p-3">قيصر</th>
+                                <th class="p-3">فيجنير</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-800">
+                                <td class="p-3">نوع المفتاح</td>
+                                <td class="p-3 text-yellow-400">رقم واحد</td>
+                                <td class="p-3 text-green-400">نص (كلمة)</td>
+                            </tr>
+                            <tr class="border-b border-gray-800">
+                                <td class="p-3">عدد الاحتمالات</td>
+                                <td class="p-3 text-red-400">25 فقط</td>
+                                <td class="p-3 text-green-400">26^m (m=طول المفتاح)</td>
+                            </tr>
+                            <tr class="border-b border-gray-800">
+                                <td class="p-3">نفس الحرف يعطي</td>
+                                <td class="p-3 text-red-400">نفس النتيجة دائماً</td>
+                                <td class="p-3 text-green-400">نتائج مختلفة حسب موقعه</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3">الأمان</td>
+                                <td class="p-3 text-red-400">ضعيف جداً</td>
+                                <td class="p-3 text-yellow-400">متوسط (للمفتاح الطويل)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Note -->
+    <section class="py-20 px-4 md:px-20 bg-black/30">
+        <div class="max-w-4xl mx-auto glass-card rounded-2xl p-8 border-l-4 border-orange-500 bg-orange-500/5">
+            <div class="flex items-start gap-4">
+                <div class="text-4xl">⚠️</div>
+                <div>
+                    <h3 class="text-2xl font-bold text-orange-400 mb-4">ملاحظة أمنية</h3>
+                    <p class="text-gray-300 leading-relaxed text-lg">
+                        دكتور، رغم أن فيجنير أقوى من قيصر، إلا أنها <span class="text-red-400 font-bold">غير آمنة</span> للاستخدام الحديث.
+                        تم كسرها سنة 1863 بواسطة Friedrich Kasiski. 
+                        اليوم يمكن كسرها بسهولة باستخدام:
+                    </p>
+                    <ul class="mt-4 space-y-2 text-gray-400 mr-6 list-disc">
+                        <li>تحليل كاسiski (Kasiski Examination) لتحديد طول المفتاح</li>
+                        <li>تحليل التكرار (Frequency Analysis) على كل مجموعة حروف</li>
+                        <li>هجوم القوة العمياء إذا كان المفتاح قصيراً</li>
+                    </ul>
+                    <p class="mt-4 text-gray-300">
+                        للاستخدام العملي، نستخدم <span class="text-green-400">One-Time Pad</span> (إذا كان المفتاح عشوائي وطوله يساوي النص) 
+                        أو خوارزميات حديثة مثل <span class="text-green-400">AES</span>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-16 px-4 text-center border-t border-gray-800 bg-black/50">
+        <div class="max-w-2xl mx-auto">
+            <div class="mb-8 p-8 rounded-2xl bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/20">
+                <h4 class="text-2xl font-bold text-white mb-4">معلومات المشروع</h4>
+                <div class="space-y-3">
+                    <p class="text-xl"><span class="text-gray-400">إعداد الطالب:</span> <span class="text-purple-400 font-bold text-2xl">لؤي مرشد</span></p>
+                    <p class="text-lg"><span class="text-gray-400">إشراف:</span> <span class="text-blue-400 font-bold text-xl">الدكتور أيمن سلام</span></p>
+                    <div class="w-24 h-1 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto rounded-full my-4"></div>
+                    <p class="text-gray-500">مادة التشفير | Cryptography Course</p>
+                </div>
+            </div>
+            <p class="text-gray-600 text-sm">
+                Vigenère Cipher Algorithm - Python Implementation
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize GSAP
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.step-card').forEach((card, i) => {
+            gsap.to(card, {
+                scrollTrigger: { trigger: card, start: "top 85%" },
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                delay: i * 0.1
+            });
+        });
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Generate Vigenère Square
+        function generateVigenereSquare() {
+            const table = document.getElementById('vigenere-square');
+            const headers = ['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+            
+            // Header row
+            let html = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+            
+            // Data rows
+            for (let i = 0; i < 26; i++) {
+                html += '<tr>';
+                html += `<th>${String.fromCharCode(65 + i)}</th>`;
+                for (let j = 0; j < 26; j++) {
+                    const char = String.fromCharCode(65 + ((i + j) % 26));
+                    const isHighlight = (i === 7 && j === 10); // H + K = R
+                    html += `<td class="${isHighlight ? 'highlight-cell' : ''}">${char}</td>`;
+                }
+                html += '</tr>';
+            }
+            
+            table.innerHTML = html;
+        }
+
+        // Vigenère Cipher Implementation
+        function vigenere_encrypt(plaintext, key) {
+            if (!key.isalpha()) {
+                throw new Error("Key must contain letters only");
+            }
+            
+            let result = "";
+            key = key.toLowerCase();
+            let key_index = 0;
+            
+            for (let char of plaintext) {
+                if (/[a-zA-Z]/.test(char)) {
+                    const base = char === char.toUpperCase() ? 65 : 97;
+                    const p = char.toLowerCase().charCodeAt(0) - 97;
+                    const k = key[key_index % key.length].charCodeAt(0) - 97;
+                    const c = (p + k) % 26;
+                    result += String.fromCharCode(c + base);
+                    key_index++;
+                } else {
+                    result += char;
+                }
+            }
+            
+            return { result, key_index };
+        }
+
+        function generateKeyStream(text, key) {
+            let stream = "";
+            let keyIdx = 0;
+            const lowerKey = key.toLowerCase();
+            
+            for (let char of text) {
+                if (/[a-zA-Z]/.test(char)) {
+                    stream += lowerKey[keyIdx % key.length].toUpperCase();
+                    keyIdx++;
+                } else {
+                    stream += char;
+                }
+            }
+            return stream;
+        }
+
+        function runCipher() {
+            const text = document.getElementById('input-text').value || "Hello";
+            const key = document.getElementById('input-key').value || "KEY";
+            
+            try {
+                const encrypted = vigenere_encrypt(text, key);
+                const keyStream = generateKeyStream(text, key);
+                
+                document.getElementById('output-encrypted').textContent = encrypted.result;
+                document.getElementById('output-key-stream').textContent = keyStream;
+                
+                updateVisualization(text, key, encrypted.result);
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+
+        function updateVisualization(text, key, encrypted) {
+            const container = document.getElementById('step-visualization');
+            container.innerHTML = '';
+            
+            let keyIdx = 0;
+            const lowerKey = key.toLowerCase();
+            
+            for (let i = 0; i < Math.min(text.length, 6); i++) {
+                const char = text[i];
+                const isLetter = /[a-zA-Z]/.test(char);
+                
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-4 bg-white/5 rounded-lg p-4 border border-white/10';
+                
+                if (isLetter) {
+                    const k = lowerKey[keyIdx % key.length].toUpperCase();
+                    const p = char.toLowerCase().charCodeAt(0) - 97;
+                    const kVal = k.toLowerCase().charCodeAt(0) - 97;
+                    const c = (p + kVal) % 26;
+                    const result = encrypted[i];
+                    
+                    div.innerHTML = `
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500">نص</span>
+                            <span class="text-xl font-bold text-purple-400 w-10 h-10 flex items-center justify-center bg-purple-500/20 rounded">${char}</span>
+                        </div>
+                        <span class="text-gray-600">+</span>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500">مفتاح</span>
+                            <span class="text-xl font-bold text-blue-400 w-10 h-10 flex items-center justify-center bg-blue-500/20 rounded">${k}</span>
+                        </div>
+                        <span class="text-gray-600">=</span>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500">نتيجة</span>
+                            <span class="text-xl font-bold text-green-400 w-10 h-10 flex items-center justify-center bg-green-500/20 rounded">${result}</span>
+                        </div>
+                        <div class="mr-auto text-xs text-gray-500 code-font">
+                            ${p} + ${kVal} = ${c} (mod 26)
+                        </div>
+                    `;
+                    keyIdx++;
+                } else {
+                    div.innerHTML = `
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500">رمز</span>
+                            <span class="text-xl font-bold text-gray-400 w-10 h-10 flex items-center justify-center bg-gray-500/20 rounded">${char}</span>
+                        </div>
+                        <span class="text-gray-600 mr-4">→</span>
+                        <span class="text-sm text-gray-500">يتجاوز (المفتاح ما يتقدم)</span>
+                    `;
+                }
+                
+                container.appendChild(div);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            generateVigenereSquare();
+            runCipher();
+        });
+
+        // Live update
+        let debounceTimer;
+        ['input-text', 'input-key'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(runCipher, 300);
+            });
+        });
+    </script>
+</body>
+</html>
