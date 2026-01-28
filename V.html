@@ -743,9 +743,9 @@
 
         // Vigenère Cipher Implementation
         function vigenere_encrypt(plaintext, key) {
-            if (!key.isalpha()) {
-                throw new Error("Key must contain letters only");
-            }
+            if (!/^[a-zA-Z]+$/.test(key)) {
+    throw new Error("Key must contain letters only");
+}
             
             let result = "";
             key = key.toLowerCase();
